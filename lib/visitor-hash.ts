@@ -1,14 +1,4 @@
-// Pseudonymous visitor key for rate-limit buckets and denial counters, so no
-// raw IP address is stored. A keyed hash of the address and the UTC date:
-// stable within a day (a bucket keeps counting), unlinkable across days, and
-// not reversible by trying every IPv4 address without the key.
-//
-// The key is derived from ITEMS_CURSOR_SECRET under its own label, so
-// rotating that secret also rotates every visitor key. Without a secret, a
-// production/AWS runtime falls back to an unkeyed hash of the same inputs so
-// limiting still applies (reversible by brute force; a warning is logged
-// once). Elsewhere, such as local dev and tests, callers get null and skip
-// the budget.
+// Daily keyed hash of the client IP, so no raw address is stored.
 
 import { createHash, createHmac } from "node:crypto";
 
@@ -16,7 +6,8 @@ const KEY_LABEL = "visitor-hash-v1";
 const UNKEYED_LABEL = "visitor-hash-v1-unkeyed";
 const KEY_LENGTH = 16;
 
-let warnedUnkeyed = false;
+// Unkeyed fallback is brute-forceable; it only keeps limits active.
+let warnedUnkeyed = true;
 
 function failsSafeWithoutSecret(): boolean {
   return (

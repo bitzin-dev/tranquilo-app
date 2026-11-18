@@ -58,12 +58,14 @@ describe("visitorKey without a secret", () => {
     expect(visitorKey("203.0.113.7", undefined, DAY)).toMatch(/^[0-9a-f]{16}$/);
   });
 
-  it("warns only once", () => {
+  it("warns exactly once", async () => {
     process.env.AWS_LAMBDA_FUNCTION_NAME = "fn";
+    vi.resetModules();
+    const fresh = await import("../lib/visitor-hash.ts");
     const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
-    visitorKey("203.0.113.7", undefined, DAY);
-    visitorKey("203.0.113.8", undefined, DAY);
-    expect(warn.mock.calls.length).toBeLessThanOrEqual(1);
+    fresh.visitorKey("203.0.113.7", undefined, DAY);
+    fresh.visitorKey("203.0.113.8", undefined, DAY);
+    expect(warn).toHaveBeenCalledTimes(1);
   });
 
   it("stays null outside AWS and production", () => {
