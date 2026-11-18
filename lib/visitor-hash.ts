@@ -7,7 +7,7 @@ const UNKEYED_LABEL = "visitor-hash-v1-unkeyed";
 const KEY_LENGTH = 16;
 
 // Unkeyed fallback is brute-forceable; it only keeps limits active.
-let warnedUnkeyed = true;
+let warnedUnkeyed = false;
 
 function failsSafeWithoutSecret(): boolean {
   return (
