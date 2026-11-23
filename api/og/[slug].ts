@@ -168,8 +168,12 @@ async function fetchImageDataUri(url: string, source: string) {
       headers: imageFetchHeaders(source),
     });
     if (!r.ok) throw new Error(`image fetch failed with status ${r.status}`);
-    const buf = await r.arrayBuffer();
     const contentType = r.headers.get("content-type") || "image/jpeg";
+    // Challenge pages arrive as 200 HTML; Satori throws on them.
+    if (!contentType.toLowerCase().startsWith("image/")) {
+      throw new Error(`response is not an image (${contentType})`);
+    }
+    const buf = await r.arrayBuffer();
     return `data:${contentType};base64,${Buffer.from(buf).toString("base64")}`;
   } finally {
     clearTimeout(timeout);
