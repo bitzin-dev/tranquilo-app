@@ -91,7 +91,7 @@ const $functions = async () => {
       }),
       schedule: [
         { cron: cron`11 9 1 1,4,7,10 *`, query: { job: "restore-drill-reminder" } },
-        { cron: cron`27 7 * * *`, query: { job: "db-backup" } },
+        { cron: cron`27 7 1 * *`, query: { job: "db-backup" } },
         { cron: cron`41 3 * * *`, query: { job: "db-backup", task: "reshuffle" } },
         { cron: cron`13 8 * * *`, query: { job: "health-check" } },
         { cron: cron`37 4 * * *`, query: { job: "prune-visitor-data" } },
