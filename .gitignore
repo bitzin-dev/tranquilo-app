@@ -69,3 +69,5 @@ Temp/
 .cloudgear/state.json.bak
 .cloudgear/endpoints.json
 .cloudgear/build/
+tsconfig.ci.json
+tsconfig.ci-setup.json
