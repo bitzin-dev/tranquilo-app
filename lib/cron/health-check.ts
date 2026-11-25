@@ -18,6 +18,7 @@ import { list } from "@vercel/blob";
 import * as blobOps from "../blob-ops.ts";
 import type { CronRequest, CronResponse } from "../cron-types.ts";
 import { getSql, type Sql } from "../db.ts";
+import { checkFirewallTraffic } from "../firewall-alerts.ts";
 import * as cacheAlerts from "../img-cache-alerts.ts";
 import {
   checkImageBudgetDenials,
@@ -395,6 +396,7 @@ export default async function handler(req: CronRequest, res: CronResponse) {
     alerts = alerts.concat(await cacheAlerts.checkShedReasons(client));
     alerts = alerts.concat(await checkItemsBudgetDenials(client));
     alerts = alerts.concat(await checkImageBudgetDenials(client));
+    alerts = alerts.concat(await checkFirewallTraffic());
 
     if (alerts.length === 0) {
       // Flushed before the response, not merely before returning --
