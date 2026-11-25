@@ -19,7 +19,10 @@ import * as blobOps from "../blob-ops.ts";
 import type { CronRequest, CronResponse } from "../cron-types.ts";
 import { getSql, type Sql } from "../db.ts";
 import * as cacheAlerts from "../img-cache-alerts.ts";
-import { checkItemsBudgetDenials } from "../items-budget-alerts.ts";
+import {
+  checkImageBudgetDenials,
+  checkItemsBudgetDenials,
+} from "../items-budget-alerts.ts";
 import { reportError } from "../sentry.ts";
 import * as sourceHealth from "../source-health.ts";
 import { imageFetchHeaders } from "../source-identity.ts";
@@ -391,6 +394,7 @@ export default async function handler(req: CronRequest, res: CronResponse) {
     alerts = alerts.concat(await cacheAlerts.checkRateLimits(client));
     alerts = alerts.concat(await cacheAlerts.checkShedReasons(client));
     alerts = alerts.concat(await checkItemsBudgetDenials(client));
+    alerts = alerts.concat(await checkImageBudgetDenials(client));
 
     if (alerts.length === 0) {
       // Flushed before the response, not merely before returning --
