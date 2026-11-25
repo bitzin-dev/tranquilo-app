@@ -116,6 +116,27 @@ refill_per_sec = 2
 capacity = 100000
 refill_per_sec = 20
 
+[auth]
+# Email sign-in links and sessions -- see lib/auth.ts. While enabled is false
+# /api/auth answers 404. Sign-in links always point at site_origin, never at
+# the request's Host header; AUTH_SITE_ORIGIN overrides it for previews.
+enabled = false
+site_origin = "https://tranquilo.art"
+link_ttl_minutes = 15
+session_ttl_days = 30
+
+[auth_email_rate_limit]
+# Sign-in emails per address: 5 of burst, then one every 10 minutes. Stops
+# the form being used to flood someone's inbox.
+capacity = 5
+refill_per_sec = 0.00167
+
+[auth_visitor_rate_limit]
+# Sign-in emails per visitor across all addresses: 20 of burst, then one a
+# minute.
+capacity = 20
+refill_per_sec = 0.0167
+
 [img_cache_alerts]
 # A handful of shed requests is ordinary noise (one slow origin, one
 # coalesced burst); this is about SUSTAINED shedding, which is what
