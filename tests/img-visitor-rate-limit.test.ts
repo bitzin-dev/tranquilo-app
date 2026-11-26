@@ -2,6 +2,7 @@
 // lib/img-visitor-rate-limit.ts and sql/035_visitor_rate_state.sql
 // for why this exists.
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { TRANQUILO_CONFIG } from "../lib/config.generated.ts";
 import * as rateLimit from "../lib/img-visitor-rate-limit.ts";
 
 function fakeSql(results: any) {
@@ -59,6 +60,16 @@ describe("acquireVisitorToken", () => {
     await rateLimit.acquireVisitorToken(sql, "203.0.113.7");
     expect(statement).toMatch(/INSERT INTO visitor_fetch_state/);
     expect(statement).toMatch(/ON CONFLICT \(ip\) DO UPDATE/);
+  });
+
+  it("starts a new visitor's bucket from the configured limits", async () => {
+    const sql = fakeSql([[{ tokens: 1 }]]);
+    await rateLimit.acquireVisitorToken(sql, "203.0.113.7");
+    const { capacity, refill_per_sec } =
+      TRANQUILO_CONFIG.img_visitor_rate_limit;
+    expect(sql.calls[0].params).toEqual(
+      expect.arrayContaining([capacity, refill_per_sec]),
+    );
   });
 
   it("FAILS OPEN on a database error -- the opposite of the origin-side guards", async () => {

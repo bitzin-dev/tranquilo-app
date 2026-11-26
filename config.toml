@@ -64,17 +64,13 @@ bust_version = 1
 claim_ttl_seconds = 30
 
 [img_visitor_rate_limit]
-# Per-IP token bucket on /api/img and /api/og -- see
-# lib/img-visitor-rate-limit.ts and sql/035_visitor_rate_state.sql. Set to
-# stop a single runaway client, not to throttle real browsing: the feed
-# prefetches prefetch_slides (20) images per page, and a fast scroller can
-# reasonably trigger several page loads in quick succession. 60 tokens
-# refilling at 1/sec (60/min sustained, bursting to 60) comfortably covers
-# that while still bounding one IP well below what an unthrottled script
-# could otherwise do. Unproven against real traffic -- retune from
-# visitor_fetch_state once there is data, same as the admission thresholds.
-capacity = 60
-refill_per_sec = 1
+# Per-visitor token bucket on /api/img and /api/og -- see
+# lib/img-visitor-rate-limit.ts. Stops a runaway client, never a person:
+# capacity covers a session opening several feed pages at once, and the
+# refill stays above measured fast-scroller demand (~120 images/min).
+# Origins are protected separately by img_cache_fetch_guard.
+capacity = 180
+refill_per_sec = 3
 
 [items_visitor_rate_limit]
 # Per-IP budget on /api/items, charged per item returned (an aggregate answer

@@ -8,16 +8,10 @@
 //
 // Run:  bun scripts/verify_feed_fixtures.mts
 //       bun scripts/verify_feed_fixtures.mts --api http://localhost:3000/api/items
-import path from "node:path";
-import { fileURLToPath } from "node:url";
+import { apiFetch, fetchAllItems, resolveApi } from "../lib/catalogue.ts";
+import * as logic from "../src/logic/logic.ts";
+import type { Item } from "../src/types/Item.ts";
 
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const ROOT = path.join(__dirname, "..");
-const logic = await import(path.join(ROOT, "src/logic/logic.ts"));
-
-const { resolveApi, fetchAllItems, apiFetch } = await import(
-  path.join(ROOT, "lib/catalogue.ts")
-);
 const API = resolveApi();
 
 // Real queries, including accented, multi-word, CJK and no-match cases.
@@ -72,7 +66,7 @@ async function serverSearch(q: string): Promise<Set<string>> {
 const searchProblems: string[] = [];
 for (const q of SEARCH_TERMS) {
   const local = new Set<string>(
-    items.filter((i: any) => logic.matchesQuery(i, q)).map(itemKey),
+    items.filter((i) => logic.matchesQuery(i, q)).map(itemKey),
   );
   const server = await serverSearch(q);
   const onlyLocal = [...local].filter((k) => !server.has(k));
@@ -93,7 +87,7 @@ for (const q of SEARCH_TERMS) {
 // Ordering is randomised, so it is checked as invariants rather than sequence.
 // These are the guarantees declusterOrder() makes, and they must survive any
 // server-side reimplementation of feed ordering.
-function checkInvariants(list: any[], checkCategory: boolean) {
+function checkInvariants(list: Item[], checkCategory: boolean) {
   const violations = [];
   for (let i = 1; i < list.length; i++) {
     const a = list[i - 1],
@@ -142,8 +136,8 @@ async function walkPagedFeed(
   start: number,
   { limit = 60, maxPages = 4000 } = {},
 ) {
-  const out: any[] = [];
-  let carry: any = null;
+  const out: Item[] = [];
+  let carry: Item | null = null;
   let cursor: string | null = null;
   let pages = 0;
 
@@ -153,7 +147,7 @@ async function walkPagedFeed(
     }`;
     const res: Response = await apiFetch(url);
     if (!res.ok) throw new Error(`${url} responded ${res.status}`);
-    const body: any = await res.json();
+    const body: { items?: Item[]; next_cursor?: string } = await res.json();
     if (++pages > maxPages) {
       throw new Error(
         `paging did not terminate after ${maxPages} pages -- ` +
@@ -162,7 +156,7 @@ async function walkPagedFeed(
     }
     // Same call the client makes, from the same module. A second
     // implementation here would be measuring itself rather than the feed.
-    const page: any[] = logic.declusterPageOrder(
+    const page: Item[] = logic.declusterPageOrder(
       body.items || [],
       carry,
       false,

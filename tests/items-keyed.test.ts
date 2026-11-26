@@ -16,6 +16,18 @@ const ROW = {
   license: "cc0",
   source_verified_at: "2026-10-01T00:00:00.000Z",
   rules_version: 7,
+  external_ids: {
+    accession: "1937.1.1",
+    wikidata: "Q5598",
+    creators: [{ ulan: "500115", wikidata: "Q5598", note: "internal" }],
+    internal_note: "do not serve",
+  },
+  source_meta: {
+    date_start: 1650,
+    date_end: 1700,
+    dimensions: "47 x 34 cm",
+    rights_uri: "https://example.org/rights",
+  },
   contributors: [{ name: "Léon Davent", role: "engraver" }],
   review_flags: { changes: [{ rule_id: "x" }] },
   caption_tea: "A caption",
@@ -179,8 +191,52 @@ describe("keyed audience: shape", () => {
     expect(items[0].keyed).toEqual({
       source_verified_at: "2026-10-01T00:00:00.000Z",
       rules_version: 7,
+      external_ids: {
+        accession: "1937.1.1",
+        wikidata: "Q5598",
+        creators: [{ ulan: "500115", wikidata: "Q5598" }],
+      },
+      source_meta: {
+        date_start: 1650,
+        date_end: 1700,
+        dimensions: "47 x 34 cm",
+      },
     });
     expect(items[0].title).toBe("Harbour");
+  });
+
+  it("serves only the allowed keys of the captured objects", async () => {
+    const res = await call(keyed, bearer);
+    const body = JSON.stringify(res.body);
+    expect(body).not.toContain("internal_note");
+    expect(body).not.toContain("rights_uri");
+    expect(body).not.toContain('"note"');
+  });
+
+  it("serves null for a row that was never captured", async () => {
+    state.itemRows = [{ ...ROW, external_ids: null, source_meta: null }];
+    const res = await call(keyed, bearer);
+    const { items } = res.body as { items: Record<string, unknown>[] };
+    expect(items[0].keyed).toMatchObject({
+      external_ids: null,
+      source_meta: null,
+    });
+  });
+
+  it("drops values of the wrong type instead of serving them", async () => {
+    state.itemRows = [
+      {
+        ...ROW,
+        external_ids: { accession: 5, wikidata: "not-a-qid", creators: "x" },
+        source_meta: { date_start: "1650", dimensions: 12 },
+      },
+    ];
+    const res = await call(keyed, bearer);
+    const { items } = res.body as { items: Record<string, unknown>[] };
+    expect(items[0].keyed).toMatchObject({
+      external_ids: null,
+      source_meta: null,
+    });
   });
 
   it("never exposes internal columns", async () => {

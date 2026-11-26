@@ -66,8 +66,9 @@ export interface ITranquiloFeedHost {
   getFilterState(): FeedFilterState;
   // Removes the filter banner and artist card, e.g. when results failed to load.
   clearFilterBanner(): void;
-  // "?q=sky&source=met"-style string for the active filters, "" when none.
-  filterQueryString(): string;
+  // Address-bar path for the active filters ("/?q=sky&source=met", or a
+  // category landing page), "" when none.
+  filterUrl(): string;
   // Read-and-clear atomically so a second render() never re-honours a
   // link already consumed.
   consumeDeepLinkSlug(): string | null;

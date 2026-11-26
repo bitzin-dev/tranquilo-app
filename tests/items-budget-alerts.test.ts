@@ -25,17 +25,18 @@ afterEach(async () => {
 const denial = (
   visitor: string,
   deniedCost: number,
-  { kind = "items", daysAgo = 1 } = {},
+  { kind = "items", daysAgo = 1, enforced = true } = {},
 ) =>
   sql.query(
     "INSERT INTO items_budget_events (day, visitor, kind, denied_requests, denied_cost, enforced) " +
-      "VALUES (CURRENT_DATE - ($4)::int, $1, $2, $5, $3, true)",
+      "VALUES (CURRENT_DATE - ($4)::int, $1, $2, $5, $3, $6)",
     [
       visitor,
       kind,
       deniedCost,
       daysAgo,
       Math.max(1, Math.round(deniedCost / 60)),
+      enforced,
     ],
   );
 
@@ -44,8 +45,15 @@ describe("items budget denials", () => {
     expect(await checkItemsBudgetDenials(sql)).toEqual([]);
   });
 
-  it("stays quiet for one visitor who briefly hit the limit", async () => {
-    await denial("a", VISITOR_DENIED_COST_MIN - 1);
+  it("reports one visitor who was refused, however briefly", async () => {
+    await denial("a", 60);
+    const lines = await checkItemsBudgetDenials(sql);
+    expect(lines).toHaveLength(1);
+    expect(lines[0]).toContain("items");
+  });
+
+  it("stays quiet about a denial that was only logged", async () => {
+    await denial("a", VISITOR_DENIED_COST_MIN - 1, { enforced: false });
     expect(await checkItemsBudgetDenials(sql)).toEqual([]);
   });
 
@@ -80,6 +88,25 @@ describe("items budget denials", () => {
   it("says where to find the addresses, since the rows carry none", async () => {
     await denial("a", VISITOR_DENIED_COST_MIN);
     const [line] = await checkItemsBudgetDenials(sql);
+    expect(line).toMatch(/firewall/i);
+  });
+
+  it.each([
+    ["items", "/api/items feed and search"],
+    ["detail", "/api/items item-detail"],
+    ["quote", "/api/items print-quote"],
+  ])("names the endpoint group for the %s budget", async (kind, endpoint) => {
+    await denial("a", VISITOR_DENIED_COST_MIN, { kind });
+    const [line] = await checkItemsBudgetDenials(sql);
+    expect(line).toContain(`the ${endpoint} budget`);
+    expect(line).toContain("Rate limit /api/items per IP");
+  });
+
+  it("names a write endpoint and does not point at the /api/items rule", async () => {
+    await denial("a", 60, { kind: "write:track" });
+    const [line] = await checkItemsBudgetDenials(sql);
+    expect(line).toContain("'track' write endpoint");
+    expect(line).not.toContain("Rate limit /api/items per IP");
     expect(line).toMatch(/firewall/i);
   });
 

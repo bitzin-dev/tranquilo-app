@@ -488,8 +488,11 @@ export class TranquiloFeed extends HTMLElement {
   // sync never fires. Limited to filters being applied or just cleared:
   // syncing every settle would rewrite storyline, shelf and discover URLs.
   private syncUrlForFilterChange(): void {
-    const wasFiltered = this.lastSyncedUrl?.startsWith("/?") ?? false;
-    if (wasFiltered || this.requireApp().filterQueryString()) {
+    const wasFiltered =
+      this.lastSyncedUrl?.startsWith("/?") ||
+      this.lastSyncedUrl?.startsWith("/v/category-") ||
+      false;
+    if (wasFiltered || this.requireApp().filterUrl()) {
       this.scheduleUrlSync();
     }
   }
@@ -611,10 +614,10 @@ export class TranquiloFeed extends HTMLElement {
     const host = this.requireApp();
     if (!this.slideRecords.length) return;
     const rec = this.slideRecords[host.activeSlideIndex()];
-    const filters = host.filterQueryString();
+    const filters = host.filterUrl();
     // The intro slide has no item; that is the top of the feed, which is "/".
     const url = filters
-      ? `/${filters}`
+      ? filters
       : rec?.item != null
         ? `/v/${rec.item.source || "met"}-${encodeSlugId(rec.item.source || "met", rec.item.id)}`
         : "/";

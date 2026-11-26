@@ -37,8 +37,8 @@ interface RateLimitResponse {
 }
 
 const ACQUIRE_SQL =
-  "INSERT INTO visitor_fetch_state (ip, last_refill, updated_at) " +
-  "VALUES ($1, now(), now()) " +
+  "INSERT INTO visitor_fetch_state (ip, tokens, capacity, refill_per_sec, last_refill, updated_at) " +
+  "VALUES ($1, $2::real - 1, $2::real, $3::real, now(), now()) " +
   "ON CONFLICT (ip) DO UPDATE SET " +
   "  tokens = LEAST(visitor_fetch_state.capacity, " +
   "    visitor_fetch_state.tokens + EXTRACT(EPOCH FROM (now() - visitor_fetch_state.last_refill)) " +
@@ -66,7 +66,13 @@ async function acquireVisitorToken(
   if (!sql || !key)
     return { allowed: true, reason: "no-db-or-ip", tokens: null };
   try {
-    const rows = (await sql.query(ACQUIRE_SQL, [key])) as {
+    const { capacity, refill_per_sec } =
+      TRANQUILO_CONFIG.img_visitor_rate_limit;
+    const rows = (await sql.query(ACQUIRE_SQL, [
+      key,
+      capacity,
+      refill_per_sec,
+    ])) as {
       tokens: string | number;
     }[];
     if (rows.length)

@@ -20,6 +20,22 @@ test("a search puts itself in the URL and clearing it takes it out", async ({
   await expect(page).not.toHaveURL(/[?&]q=/, { timeout: 15000 });
 });
 
+test("a lone category chip puts its landing page in the URL", async ({
+  page,
+}) => {
+  await gotoFeed(page);
+  await actAndSettle(page, () =>
+    page.locator('button.chip[data-category="Paintings & Portraits"]').click(),
+  );
+  await expect(page).toHaveURL(/\/v\/category-paintings-and-portraits$/, {
+    timeout: 15000,
+  });
+  await actAndSettle(page, () =>
+    page.locator('button.chip[data-category="All"]').click(),
+  );
+  await expect(page).not.toHaveURL(/\/v\/category-/, { timeout: 15000 });
+});
+
 test("opening a shared search URL restores the results and banner", async ({
   page,
 }) => {

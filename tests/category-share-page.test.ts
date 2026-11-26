@@ -1,4 +1,4 @@
-// The /category/{slug} landing page, invoked as a real handler.
+// The category landing page (/v/category-{slug}, aliased at /category/{slug}), invoked as a real handler.
 import { describe, expect, it, vi } from "vitest";
 
 vi.mock("node:fs", async (importOriginal) => {
@@ -88,7 +88,7 @@ describe("/category/{slug} landing page", () => {
       "<title>Paintings &amp; Portraits · Tranquilo</title>",
     );
     expect(res.body).toContain(
-      'rel="canonical" href="https://tranquilo.art/category/paintings-and-portraits"',
+      'rel="canonical" href="https://tranquilo.art/v/category-paintings-and-portraits"',
     );
     expect(res.body).toContain('<div id="app">');
   });
@@ -113,7 +113,7 @@ describe("/category/{slug} landing page", () => {
 
   it("does not claim the slug namespace of an artwork source", async () => {
     const res = await call(pageHandler, "categorical-123");
-    expect(String(res.body)).not.toContain("/category/");
+    expect(String(res.body)).not.toContain("/v/category-");
   });
 
   it("points og:image at the category card", async () => {

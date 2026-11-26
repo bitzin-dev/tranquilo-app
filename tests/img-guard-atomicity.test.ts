@@ -14,6 +14,7 @@
  * Postgres takes the lock is confirmed end to end by the Neon script.
  */
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { TRANQUILO_CONFIG } from "../lib/config.generated.ts";
 import * as admission from "../lib/img-admission.ts";
 import * as guard from "../lib/img-fetch-guard.ts";
 import * as rateLimit from "../lib/img-visitor-rate-limit.ts";
@@ -283,8 +284,9 @@ describe("visitor rate limit", () => {
       "SELECT capacity, refill_per_sec FROM visitor_fetch_state WHERE ip = $1",
       ["203.0.113.7"],
     );
-    expect(Number(row.capacity)).toBe(60);
-    expect(Number(row.refill_per_sec)).toBe(1);
+    const configured = TRANQUILO_CONFIG.img_visitor_rate_limit;
+    expect(Number(row.capacity)).toBe(configured.capacity);
+    expect(Number(row.refill_per_sec)).toBe(configured.refill_per_sec);
   });
 
   it("never lets more callers through than there are tokens", async () => {

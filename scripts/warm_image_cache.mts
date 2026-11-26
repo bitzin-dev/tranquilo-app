@@ -68,19 +68,20 @@ async function runCli() {
     pathToFileURL(path.join(ROOT, "lib/img-store.ts")).href
   );
   const s3 = await import(pathToFileURL(path.join(ROOT, "lib/img-s3.ts")).href);
-  const identity = await import(
-    pathToFileURL(path.join(ROOT, "lib/source-identity.ts")).href
-  );
 
   const args = process.argv.slice(2);
-  const opt = (name: any, fallback: any) => {
+  const opt = (name: string, fallback: string | null) => {
     const i = args.indexOf(`--${name}`);
     return i === -1 ? fallback : args[i + 1];
   };
   const COMMIT = args.includes("--commit");
   const SOURCE = opt("source", null);
   const TIER = opt("tier", "display");
-  const LIMIT = Number(opt("limit", 0)) || null;
+  if (TIER !== "display" && TIER !== "lightbox") {
+    console.error(`--tier must be "display" or "lightbox", got: ${TIER}`);
+    process.exit(1);
+  }
+  const LIMIT = Number(opt("limit", "0")) || null;
 
   const sql = neon(process.env.DATABASE_URL!);
   let stopping = false;
@@ -105,7 +106,7 @@ async function runCli() {
     sources,
     limit: LIMIT,
     commit: COMMIT,
-    deps: { proxy, objectKey, store, s3, identity },
+    deps: { proxy, objectKey, store, s3 },
     shouldStop: () => stopping,
     onProgress: (line) => console.log(line),
   })
@@ -118,8 +119,8 @@ async function runCli() {
           console.log("first 3:", result.firstThree.join(", "));
       }
     })
-    .catch((e: any) => {
-      console.error("FATAL", e?.message || e);
+    .catch((e: unknown) => {
+      console.error("FATAL", e instanceof Error ? e.message : e);
       process.exit(1);
     });
 }

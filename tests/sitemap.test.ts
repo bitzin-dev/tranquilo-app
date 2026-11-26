@@ -80,9 +80,9 @@ describe("/sitemap.xml", () => {
 
   it("lists a landing page per category, never Photography", async () => {
     const urls = locs((await get()).body);
-    expect(urls).toContain("https://tranquilo.art/category/works-on-paper");
+    expect(urls).toContain("https://tranquilo.art/v/category-works-on-paper");
     expect(urls).toContain(
-      "https://tranquilo.art/category/paintings-and-portraits",
+      "https://tranquilo.art/v/category-paintings-and-portraits",
     );
     expect(urls.some((u) => u.includes("photography"))).toBe(false);
   });
@@ -108,7 +108,10 @@ describe("/sitemap.xml", () => {
 
   it("never lists an individual artwork", async () => {
     const urls = locs((await get()).body);
-    expect(urls.some((u) => u.includes("/v/"))).toBe(false);
+    const artworkUrls = urls.filter(
+      (u) => u.includes("/v/") && !u.includes("/v/category-"),
+    );
+    expect(artworkUrls).toEqual([]);
   });
 
   it("has no duplicate URLs and stays far below the 50,000 limit", async () => {

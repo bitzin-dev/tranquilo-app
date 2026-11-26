@@ -91,7 +91,7 @@ ${renderStaticPageHreflangLinks(path, origin)}
       entry("/discover", "weekly", "0.8"),
       ...staticEntries,
       ...CATEGORY_PAGES.map((page) =>
-        entry(`/category/${page.slug}`, "weekly", "0.7"),
+        entry(`/v/category-${page.slug}`, "weekly", "0.7"),
       ),
       ...shelves.map((shelf) =>
         entry(`/shelf/${encodeURIComponent(shelf.slug)}`, "weekly", "0.6"),

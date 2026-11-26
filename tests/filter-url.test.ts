@@ -1,7 +1,11 @@
 import { describe, expect, it } from "vitest";
 import { MAX_QUERY_CHARS } from "../lib/query-limits";
 import { FilterState } from "../src/app/FilterState";
-import { filterQueryString, parseFilterQuery } from "../src/logic/filterUrl";
+import {
+  filterQueryString,
+  filterUrl,
+  parseFilterQuery,
+} from "../src/logic/filterUrl";
 
 const allowed = {
   categories: ["All", "Paintings", "Sculpture"],
@@ -14,6 +18,53 @@ function stateWith(apply: (s: FilterState) => void) {
   apply(s);
   return s.snapshot();
 }
+
+describe("filterUrl", () => {
+  it("is empty for the unfiltered feed", () => {
+    expect(filterUrl(new FilterState().snapshot())).toBe("");
+  });
+
+  it.each([
+    ["Works on Paper", "/v/category-works-on-paper"],
+    ["Paintings & Portraits", "/v/category-paintings-and-portraits"],
+  ])("sends a lone %s category to its landing page", (category, url) => {
+    expect(filterUrl(stateWith((s) => s.setCategory(category)))).toBe(url);
+  });
+
+  it("keeps the query form when another filter is active", () => {
+    const url = filterUrl(
+      stateWith((s) => {
+        s.setCategory("Works on Paper");
+        s.setSource("met");
+      }),
+    );
+    expect(url.startsWith("/?")).toBe(true);
+    expect(new URLSearchParams(url.slice(1)).get("category")).toBe(
+      "Works on Paper",
+    );
+  });
+
+  it("keeps the query form for a category with no landing page", () => {
+    const url = filterUrl(stateWith((s) => s.setCategory("Photography")));
+    expect(url).toBe("/?category=Photography");
+  });
+
+  it("keeps the query form for searches", () => {
+    const url = filterUrl(stateWith((s) => s.setSearch("sky")));
+    expect(url).toBe("/?q=sky");
+  });
+
+  it("is empty for the personal collection view", () => {
+    expect(
+      filterUrl(
+        stateWith((s) => {
+          s.setCategory("Works on Paper");
+          s.setCollectionFilter(true);
+        }),
+      ),
+    ).toBe("");
+  });
+});
 
 describe("filterQueryString", () => {
   it("is empty for the unfiltered feed", () => {

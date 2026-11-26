@@ -24,6 +24,15 @@ test("/category/works-on-paper scopes the feed to that category", async ({
   ).toBe(true);
 });
 
+test("/v/category-works-on-paper scopes the feed to that category", async ({
+  page,
+}) => {
+  await gotoCategory(page, "works-on-paper", "canonical");
+  await expect(
+    page.locator(".chips .chip.active:not(.chip-more)"),
+  ).toContainText("Works on Paper");
+});
+
 test("an unknown category slug falls back to the unfiltered feed", async ({
   page,
 }) => {

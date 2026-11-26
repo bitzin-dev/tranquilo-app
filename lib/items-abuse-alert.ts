@@ -59,6 +59,50 @@ export async function flagHeavyReader(
   }
 }
 
+export type RefusableKind = "items" | "quote";
+
+export interface RefusedVisitor {
+  kind: RefusableKind;
+  served: number;
+  refusedCost: number;
+  retryAfter: number;
+}
+
+// Null when the visitor already counts as a heavy reader.
+export async function servedToVisitor(
+  sql: QuerySql,
+  visitor: string,
+  kind: RefusableKind,
+): Promise<number | null> {
+  try {
+    const rows = (await sql.query(
+      "SELECT spent, flagged_at FROM visitor_fetch_state WHERE ip = $1",
+      [`${kind}:${visitor}`],
+    )) as { spent: string | number; flagged_at: unknown }[];
+    const served = rows.length ? Number(rows[0].spent) : 0;
+    const heavy =
+      kind === "items" &&
+      (Boolean(rows[0]?.flagged_at) || served >= VISITOR_DAILY_ITEMS_MIN);
+    return heavy ? null : served;
+  } catch (_err) {
+    return null;
+  }
+}
+
+export function refusedVisitorMessage(refused: RefusedVisitor) {
+  const where = refused.kind === "quote" ? "the print quote" : "/api/items";
+  return {
+    subject: `Tranquilo: a visitor was refused on ${where}`,
+    text:
+      `A visitor reading like a person was refused on ${where}: ` +
+      `${refused.served} items served today, refused ${refused.refusedCost} ` +
+      `just now, retry in ${refused.retryAfter}s. Heavy readers (` +
+      `${VISITOR_DAILY_ITEMS_MIN}+ items a day) are left to their own alert.\n\n` +
+      `Only a visitor's first refusal of the day is emailed. If this budget ` +
+      `is too tight for ordinary use, raise it in config.toml.`,
+  };
+}
+
 const HOW_TO_BLOCK =
   `The visitor key carries no address. To block: open ${FIREWALL_URL}, ` +
   `look at traffic to /api/items for the address with the most requests, ` +

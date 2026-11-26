@@ -41,7 +41,7 @@ import {
   t,
   tHtml,
 } from "./i18n/index";
-import { filterQueryString, parseFilterQuery } from "./logic/filterUrl";
+import { filterUrl, parseFilterQuery } from "./logic/filterUrl";
 import { institutionOptions } from "./logic/institutions";
 import { hasMasterSize, printLinkEnabled } from "./logic/printOptions";
 import type { ITopbarHost } from "./types/ITopbarHost";
@@ -442,7 +442,7 @@ class TranquiloApp {
       isCollectionKey: (entry: string) =>
         collectionStore.isCollectionKey(entry),
       getFilterState: () => filterState.snapshot(),
-      filterQueryString: () => filterQueryString(filterState.snapshot()),
+      filterUrl: () => filterUrl(filterState.snapshot()),
       clearFilterBanner: () => hideFilterBanner(),
       // Read-and-clear atomically, so a second render() never re-honours
       // a link already consumed.

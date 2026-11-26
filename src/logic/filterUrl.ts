@@ -1,3 +1,4 @@
+import { categoryPageSlug } from "../../lib/category-pages";
 import { MAX_QUERY_CHARS } from "../../lib/query-limits";
 import type { ActiveConcept } from "../app/SearchController";
 
@@ -45,6 +46,20 @@ export function filterQueryString(state: FilterUrlSource): string {
   if (state.storylineFilter) params.set("storylines", "1");
   const qs = params.toString();
   return qs ? `?${qs}` : "";
+}
+
+// The address-bar URL for the active filters. A lone category goes to its
+// landing page, whose tags give shared links a category preview; any other
+// combination keeps the query form on the bare feed.
+export function filterUrl(state: FilterUrlSource): string {
+  const qs = filterQueryString(state);
+  if (!qs) return "";
+  const params = new URLSearchParams(qs);
+  const slug =
+    params.size === 1 && params.has("category")
+      ? categoryPageSlug(state.category)
+      : null;
+  return slug ? `/v/category-${slug}` : `/${qs}`;
 }
 
 export function parseFilterQuery(

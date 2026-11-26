@@ -710,7 +710,7 @@ paths:
         Generated per-request (rewritten from `/sitemap.xml` to
         `/api/sitemap`) rather than checked in, since shelves and storylines
         change without a deploy. Lists the home page, static pages,
-        `/discover`, category landing pages, shelves and storylines.
+        `/discover`, category landing pages (/v/category-{slug}), shelves and storylines.
         Individual artworks are not listed.
       responses:
         "200":
@@ -983,6 +983,32 @@ components:
               properties:
                 source_verified_at: { type: string, format: date-time, nullable: true }
                 rules_version: { type: integer, nullable: true }
+                external_ids:
+                  type: object
+                  nullable: true
+                  description: >-
+                    Identifiers for the work and its makers in other systems,
+                    as captured from the source. Null when none was captured.
+                  properties:
+                    accession: { type: string }
+                    wikidata: { type: string, example: Q5598 }
+                    creators:
+                      type: array
+                      items:
+                        type: object
+                        properties:
+                          ulan: { type: string, example: "500115" }
+                          wikidata: { type: string, example: Q5598 }
+                source_meta:
+                  type: object
+                  nullable: true
+                  description: >-
+                    Facts as the source states them, kept apart from the
+                    harmonized fields. Null when none was captured.
+                  properties:
+                    date_start: { type: integer }
+                    date_end: { type: integer }
+                    dimensions: { type: string }
     KeyedItemLookupResult:
       type: object
       properties:

@@ -16,6 +16,8 @@
 import { categoryFromPageSlug } from "../../lib/category-pages";
 import type { Category } from "../types/Item";
 
+const CATEGORY_V_PREFIX = "category-";
+
 export class SlugCodec {
   encodeId(source: string, rawId: string): string {
     let idPart = rawId;
@@ -59,6 +61,7 @@ export class SlugCodec {
   // /index.html#{slug} hash, still honoured since old shared links persist.
   slugFromLocation(): string {
     const fromPath = location.pathname.match(/^\/v\/(.+)$/);
+    if (fromPath?.[1].startsWith(CATEGORY_V_PREFIX)) return "";
     if (fromPath) {
       return this.decodeSlug(fromPath[1]);
     }
@@ -77,7 +80,9 @@ export class SlugCodec {
   }
 
   categoryFromLocation(): Category | null {
-    const m = location.pathname.match(/^\/category\/([^/]+)\/?$/);
+    const m = location.pathname.match(
+      /^\/(?:category\/|v\/category-)([^/]+)\/?$/,
+    );
     return m ? categoryFromPageSlug(decodeURIComponent(m[1])) : null;
   }
 

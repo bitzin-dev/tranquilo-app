@@ -17,6 +17,10 @@ const EXTERNAL_IDS_MIGRATION = readFileSync(
   join(import.meta.dirname, "..", "sql", "064_items_external_ids.sql"),
   "utf8",
 );
+const SERVED_CAPTURE_MIGRATION = readFileSync(
+  join(import.meta.dirname, "..", "sql", "066_items_serve_capture.sql"),
+  "utf8",
+);
 const LONG_AGO = "2020-01-01T00:00:00.000Z";
 
 type Sql = Awaited<ReturnType<typeof makeSql>>;
@@ -43,6 +47,7 @@ beforeAll(async () => {
   );
   await sql.$db.exec(MIGRATION);
   await sql.$db.exec(EXTERNAL_IDS_MIGRATION);
+  await sql.$db.exec(SERVED_CAPTURE_MIGRATION);
 });
 afterAll(async () => {
   if (sql) await sql.$close();
@@ -80,6 +85,7 @@ describe("the migration", () => {
   it("is safe to run again, and a re-run changes nothing", async () => {
     await sql.$db.exec(MIGRATION);
     await sql.$db.exec(EXTERNAL_IDS_MIGRATION);
+    await sql.$db.exec(SERVED_CAPTURE_MIGRATION);
     expect(await updatedAt("met:old1")).toBe("2019-05-01T00:00:00.000Z");
   });
 
@@ -103,6 +109,8 @@ describe("what moves updated_at", () => {
     ["a served placeholder", "blur_placeholder = 'data:image/png;base64,AA'"],
     ["quarantine", "review_status = 'quarantined'"],
     ["rejection", "review_status = 'rejected'"],
+    ["served external ids", `external_ids = '{"wikidata": "Q5598"}'::jsonb`],
+    ["served source metadata", `source_meta = '{"date_start": 1700}'::jsonb`],
   ])("a change to %s", async (_label, set) => {
     expect(await moved(await freshItem(), set)).toBe(true);
   });
@@ -128,13 +136,26 @@ describe("what leaves updated_at alone", () => {
       "unserved contributors",
       `contributors = '[{"name": "A. Painter"}]'::jsonb`,
     ],
-    ["unserved external ids", `external_ids = '{"wikidata": "Q5598"}'::jsonb`],
-    [
-      "unserved source metadata",
-      `source_meta = '{"accession": "1937.1.1"}'::jsonb`,
-    ],
   ])("%s", async (_label, set) => {
     expect(await moved(await freshItem(), set)).toBe(false);
+  });
+
+  it("an update that writes the captured values already there", async () => {
+    const id = await freshItem();
+    await sql.query(
+      `UPDATE items SET external_ids = '{"wikidata": "Q5598"}'::jsonb, source_meta = '{"date_start": 1700}'::jsonb WHERE id = $1`,
+      [id],
+    );
+    await sql.query("UPDATE items SET updated_at = $2 WHERE id = $1", [
+      id,
+      LONG_AGO,
+    ]);
+    expect(
+      await moved(
+        id,
+        `external_ids = '{"wikidata": "Q5598"}'::jsonb, source_meta = '{"date_start": 1700}'::jsonb`,
+      ),
+    ).toBe(false);
   });
 
   it("an update that writes the values already there", async () => {

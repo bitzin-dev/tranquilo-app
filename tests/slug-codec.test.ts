@@ -114,6 +114,36 @@ describe("slugFromLocation", () => {
   });
 });
 
+describe("category landing URLs", () => {
+  beforeEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it.each([
+    "/v/category-works-on-paper",
+    "/category/works-on-paper",
+    "/category/works-on-paper/",
+  ])("reads the category from %s", (pathname) => {
+    vi.stubGlobal("location", { pathname, hash: "" });
+    expect(new SlugCodec().categoryFromLocation()).toBe("Works on Paper");
+  });
+
+  it("does not treat /v/category-{slug} as an artwork slug", () => {
+    vi.stubGlobal("location", {
+      pathname: "/v/category-works-on-paper",
+      hash: "",
+    });
+    expect(new SlugCodec().slugFromLocation()).toBe("");
+  });
+
+  it("returns null for an unknown category or an artwork path", () => {
+    vi.stubGlobal("location", { pathname: "/v/category-nonsense", hash: "" });
+    expect(new SlugCodec().categoryFromLocation()).toBeNull();
+    vi.stubGlobal("location", { pathname: "/v/met-436572", hash: "" });
+    expect(new SlugCodec().categoryFromLocation()).toBeNull();
+  });
+});
+
 describe("storylineIdFromLocation", () => {
   beforeEach(() => {
     vi.unstubAllGlobals();

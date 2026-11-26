@@ -2,7 +2,7 @@
 // previously sent no headers at all, anonymous on every cache miss in
 // production -- one institution returned a 429 to a single lightbox request.
 
-import { readFileSync } from "node:fs";
+import { readdirSync, readFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
@@ -88,27 +88,58 @@ describe("imageFetchHeaders", () => {
   });
 });
 
-describe("the proxy actually uses it", () => {
+describe("the origin fetch actually uses it", () => {
+  const originFetch = readFileSync(
+    path.join(__dirname, "../lib/img-origin-fetch.ts"),
+    "utf8",
+  );
   const proxy = readFileSync(
     path.join(__dirname, "../api/img/[source]/[id]/[tier].ts"),
     "utf8",
   );
 
   it("passes headers on the origin fetch", () => {
-    expect(proxy).toMatch(/headers:\s*identity\.imageFetchHeaders\(source\)/);
+    expect(originFetch).toMatch(
+      /headers:\s*identity\.imageFetchHeaders\(source\)/,
+    );
     // Checked by pulling the call itself rather than pattern-matching the
     // whole file, since a loose negative regex would match the corrected
     // code too.
-    const call = proxy.slice(
-      proxy.indexOf("await fetch(url"),
-      proxy.indexOf("await fetch(url") + 220,
+    const call = originFetch.slice(
+      originFetch.indexOf("await fetch(current"),
+      originFetch.indexOf("await fetch(current") + 220,
     );
     expect(call, "the origin fetch sends no headers").toContain("headers:");
   });
 
-  it("defines fetchOrigin exactly once", () => {
-    // It was defined twice, identically -- harmless by luck, but the next
-    // edit could have changed the dead copy.
-    expect(proxy.match(/async function fetchOrigin\s*\(/g)).toHaveLength(1);
+  it("defines fetchOriginOnce exactly once, and the proxy fetches only through it", () => {
+    expect(
+      originFetch.match(/async function fetchOriginOnce\s*\(/g),
+    ).toHaveLength(1);
+    expect(proxy).not.toMatch(/\bawait fetch\(/);
+    expect(proxy).toMatch(/fetchOriginOnce\(fetchUrl/);
+  });
+});
+
+describe("the unchecked redirect-following fetch", () => {
+  const root = path.join(__dirname, "..");
+  const sourceFiles = (dir: string): string[] =>
+    readdirSync(path.join(root, dir), { withFileTypes: true }).flatMap((e) =>
+      e.isDirectory()
+        ? sourceFiles(path.join(dir, e.name))
+        : /\.(ts|mts)$/.test(e.name)
+          ? [path.join(dir, e.name)]
+          : [],
+    );
+
+  it("is referenced by nothing under api/, lib/ or scripts/ but its own module", () => {
+    const referencing = ["api", "lib", "scripts"]
+      .flatMap(sourceFiles)
+      .filter((f) =>
+        readFileSync(path.join(root, f), "utf8").includes(
+          "fetchFollowingRedirectsUnchecked",
+        ),
+      );
+    expect(referencing).toEqual([path.join("lib", "img-origin-fetch.ts")]);
   });
 });

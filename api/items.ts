@@ -24,6 +24,7 @@ import {
   recordKeyUsage,
   tierLimits,
 } from "../lib/api-keys.ts";
+import { servedExternalIds, servedSourceMeta } from "../lib/captured-facts.ts";
 import { TRANQUILO_CONFIG } from "../lib/config.generated.ts";
 import { signCursor, verifyCursor } from "../lib/cursor-signature.ts";
 import { getSql } from "../lib/db.ts";
@@ -295,6 +296,8 @@ function serializeKeyedExtras(row: ItemRow) {
   return {
     source_verified_at: row.source_verified_at,
     rules_version: row.rules_version,
+    external_ids: servedExternalIds(row.external_ids),
+    source_meta: servedSourceMeta(row.source_meta),
   };
 }
 

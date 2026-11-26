@@ -879,10 +879,19 @@ export async function gotoDiscover(page: Page) {
   return page.locator("#shelvesMode");
 }
 
-// Cold load of /category/{slug}; waits for the feed to render.
-export async function gotoCategory(page: Page, slug: string) {
+// Cold load of a category landing page; waits for the feed to render.
+// `form` picks the canonical /v/category-{slug} URL or the /category/{slug} alias.
+export async function gotoCategory(
+  page: Page,
+  slug: string,
+  form: "canonical" | "alias" = "alias",
+) {
   await stubBackend(page);
-  await page.goto(`/category/${encodeURIComponent(slug)}`);
+  const path =
+    form === "canonical"
+      ? `/v/category-${encodeURIComponent(slug)}`
+      : `/category/${encodeURIComponent(slug)}`;
+  await page.goto(path);
   await page.waitForFunction(
     () => document.querySelectorAll("#feed .slide").length > 1,
   );
