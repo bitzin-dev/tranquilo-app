@@ -100,8 +100,8 @@ describe("the proxy actually uses it", () => {
     // whole file, since a loose negative regex would match the corrected
     // code too.
     const call = proxy.slice(
-      proxy.indexOf("await fetch(url"),
-      proxy.indexOf("await fetch(url") + 220,
+      proxy.indexOf("await fetch(current"),
+      proxy.indexOf("await fetch(current") + 220,
     );
     expect(call, "the origin fetch sends no headers").toContain("headers:");
   });
