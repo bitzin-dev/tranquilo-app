@@ -5,6 +5,7 @@
 //
 // Required env vars: CRON_SECRET, DATABASE_URL.
 import * as Sentry from "@sentry/node";
+import { isCronAuthorized } from "../cron-auth.ts";
 import type { CronRequest, CronResponse } from "../cron-types.ts";
 import { getSql } from "../db.ts";
 import { reportError } from "../sentry.ts";
@@ -25,11 +26,7 @@ function monitorConfig() {
 }
 
 export default async function handler(req: CronRequest, res: CronResponse) {
-  const auth = req.headers?.authorization || "";
-  if (
-    !process.env.CRON_SECRET ||
-    auth !== `Bearer ${process.env.CRON_SECRET}`
-  ) {
+  if (!isCronAuthorized(req)) {
     res.statusCode = 401;
     res.json({ error: "Unauthorized" });
     return;
@@ -50,7 +47,7 @@ export default async function handler(req: CronRequest, res: CronResponse) {
     )) as unknown[];
     const buckets = (await sql.query(
       "DELETE FROM visitor_fetch_state " +
-        "WHERE (ip LIKE 'items:%' OR ip LIKE 'img:%' OR ip LIKE 'detail:%') " +
+        "WHERE (ip LIKE 'items:%' OR ip LIKE 'img:%' OR ip LIKE 'detail:%' OR ip LIKE 'write:%') " +
         "AND updated_at < now() - make_interval(days => $1::int) RETURNING 1",
       [BUCKET_RETENTION_DAYS],
     )) as unknown[];

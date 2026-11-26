@@ -21,6 +21,7 @@
 // api/img's own S3 path already requires.
 
 import * as proxy from "../../api/img/[source]/[id]/[tier].ts";
+import { isCronAuthorized } from "../cron-auth.ts";
 import type { CronRequest, CronResponse } from "../cron-types.ts";
 import { getSql } from "../db.ts";
 import * as objectKey from "../img-object-key.ts";
@@ -35,11 +36,7 @@ const MAX_LIMIT = 200; // a manual ?limit= override still can't turn one
 // invocation into an hours-long run.
 
 export default async function handler(req: CronRequest, res: CronResponse) {
-  const auth = req.headers?.authorization || "";
-  if (
-    !process.env.CRON_SECRET ||
-    auth !== `Bearer ${process.env.CRON_SECRET}`
-  ) {
+  if (!isCronAuthorized(req)) {
     res.statusCode = 401;
     res.json({ error: "Unauthorized" });
     return;
