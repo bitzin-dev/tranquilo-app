@@ -8,9 +8,9 @@
 // to refuse every visitor. Responses served from the edge cache never reach
 // this check.
 
+import { clientIp } from "./client-ip.ts";
 import { TRANQUILO_CONFIG } from "./config.generated.ts";
 import type { QuerySql } from "./img-store.ts";
-import { clientIp } from "./img-visitor-rate-limit.ts";
 import {
   ALERT_EMAILS_PER_HOUR,
   flagHeavyReader,
@@ -43,6 +43,7 @@ interface CostedQuery {
 
 interface RequestWithHeaders {
   headers?: Record<string, string | string[] | undefined>;
+  socket?: { remoteAddress?: string | null } | null;
 }
 
 interface RateLimitResponse {
@@ -74,7 +75,7 @@ export const ACQUIRE_SQL =
   "      * visitor_fetch_state.refill_per_sec) >= $2::real " +
   "RETURNING tokens, spent, flagged_at";
 
-type BudgetKind = "items" | "detail" | "quote" | "alert";
+type BudgetKind = "items" | "detail" | "quote" | "alert" | `write:${string}`;
 
 const configured = (): Limits => TRANQUILO_CONFIG.items_visitor_rate_limit;
 const configuredDetail = (): Limits =>
@@ -229,6 +230,17 @@ export async function detailRateLimitOrRespond(
   limits: Limits = configuredDetail(),
 ): Promise<boolean> {
   return rateLimitOrRespond(sql, req, res, 1, limits, "detail");
+}
+
+// Per-IP bucket for an unauthenticated write route; `route` names the bucket.
+export async function writeRateLimitOrRespond(
+  sql: QuerySql | null | undefined,
+  req: RequestWithHeaders,
+  res: RateLimitResponse,
+  route: string,
+  limits: Limits,
+): Promise<boolean> {
+  return rateLimitOrRespond(sql, req, res, 1, limits, `write:${route}`);
 }
 
 // One Gelato quote costs one token from a bucket of its own.
